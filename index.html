@@ -633,8 +633,15 @@
         <h2 class="animate">다음 영상부터<br>달라지세요</h2>
         <p class="desc animate delay-1">이메일만 입력하면 무료 체험 링크를 보내드립니다.<br>카드 등록 없이, 지금 바로 시작하세요.</p>
 
-        <form class="email-form animate delay-2" id="signupForm" onsubmit="handleSignup(event)">
-            <input type="email" id="emailInput" placeholder="이메일 주소 입력" required>
+        <form class="email-form animate delay-2" id="signupForm" action="https://formsubmit.co/energina516@gmail.com"
+            method="POST">
+            <!-- FormSubmit config -->
+            <input type="hidden" name="_subject" value="🔔 숏폼 복기 시트 — 새 가입 신청!">
+            <input type="hidden" name="_captcha" value="false">
+            <input type="hidden" name="_next" value="https://energina516.github.io/shortform-review/thanks.html">
+            <input type="hidden" name="_template" value="table">
+            <input type="hidden" name="source" id="hiddenSource" value="direct">
+            <input type="email" name="email" id="emailInput" placeholder="이메일 주소 입력" required>
             <button type="submit">무료 체험 →</button>
         </form>
         <div class="success-msg" id="successMsg">
@@ -647,24 +654,11 @@
     </footer>
 
     <script>
-        // Simple email collection (stores to localStorage for MVP)
-        function handleSignup(e) {
-            e.preventDefault();
-            const email = document.getElementById('emailInput').value.trim();
-            if (!email) return;
-
-            // Store signups locally
-            const signups = JSON.parse(localStorage.getItem('landing-signups') || '[]');
-            signups.push({ email, timestamp: new Date().toISOString(), source: document.referrer || 'direct' });
-            localStorage.setItem('landing-signups', JSON.stringify(signups));
-
-            // Show success
-            document.getElementById('signupForm').style.display = 'none';
-            document.getElementById('successMsg').style.display = 'block';
-
-            // Track conversion (for future analytics)
-            console.log(`[SIGNUP] ${email} from ${document.referrer || 'direct'}`);
-        }
+        // Track UTM source for community attribution
+        const params = new URLSearchParams(window.location.search);
+        const source = params.get('utm_source') || params.get('ref') || document.referrer || 'direct';
+        const hiddenSource = document.getElementById('hiddenSource');
+        if (hiddenSource) hiddenSource.value = source;
 
         // Simple scroll animation
         const observer = new IntersectionObserver((entries) => {
