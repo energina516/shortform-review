@@ -667,18 +667,20 @@
             signups.push({ email, timestamp, source: utmSource });
             localStorage.setItem('landing-signups', JSON.stringify(signups));
 
-            // 2. Send via Google Forms (reliable, free, no signup)
+            // 2. Send via Google Form (reliable, battle-tested)
             try {
-                // Google Form endpoint — will be set up by user
-                const GOOGLE_FORM_URL = 'https://script.google.com/macros/s/AKfycbwA6SKz7SyulTqWm3f1Doj4hl1NHE84WJLt2QrBnbc_m3CKnXS5WgHA3bEGRv6LEfLv/exec';
+                const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSd2GiqFEarwlqIvOOzHc1qdwImuRi4VZ85Mpkqh6xZTUMwS5Q/formResponse';
+                const formData = new URLSearchParams();
+                formData.append('entry.219964851', email);
+                formData.append('entry.1094753990', utmSource);
+                formData.append('entry.494035462', timestamp);
 
-                if (GOOGLE_FORM_URL) {
-                    await fetch(GOOGLE_FORM_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: JSON.stringify({ email, source: utmSource, timestamp }),
-                    });
-                }
+                await fetch(FORM_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData.toString(),
+                });
             } catch (err) {
                 console.log('Form submit fallback — saved to localStorage');
             }
