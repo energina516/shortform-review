@@ -646,12 +646,15 @@
         <p>© 2026 숏폼 복기 시트. 크리에이터의 성장을 가속하는 AI 복기 시스템.</p>
     </footer>
 
+    <!-- Hidden iframe for Google Form submission -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+
     <script>
         // Track UTM source
         const params = new URLSearchParams(window.location.search);
         const utmSource = params.get('utm_source') || params.get('ref') || document.referrer || 'direct';
 
-        async function handleSignup(e) {
+        function handleSignup(e) {
             e.preventDefault();
             const email = document.getElementById('emailInput').value.trim();
             if (!email) return;
@@ -662,28 +665,36 @@
 
             const timestamp = new Date().toISOString();
 
-            // 1. Always save to localStorage (backup)
+            // 1. Save to localStorage (backup)
             const signups = JSON.parse(localStorage.getItem('landing-signups') || '[]');
             signups.push({ email, timestamp, source: utmSource });
             localStorage.setItem('landing-signups', JSON.stringify(signups));
 
-            // 2. Send via Google Form (reliable, battle-tested)
-            try {
-                const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSd2GiqFEarwlqIvOOzHc1qdwImuRi4VZ85Mpkqh6xZTUMwS5Q/formResponse';
-                const formData = new URLSearchParams();
-                formData.append('entry.219964851', email);
-                formData.append('entry.1094753990', utmSource);
-                formData.append('entry.494035462', timestamp);
+            // 2. Submit via hidden form → iframe (bypasses CORS entirely)
+            const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSd2GiqFEarwlqIvOOzHc1qdwImuRi4VZ85Mpkqh6xZTUMwS5Q/formResponse';
 
-                await fetch(FORM_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData.toString(),
-                });
-            } catch (err) {
-                console.log('Form submit fallback — saved to localStorage');
+            const hiddenForm = document.createElement('form');
+            hiddenForm.method = 'POST';
+            hiddenForm.action = FORM_URL;
+            hiddenForm.target = 'hidden_iframe';
+
+            const fields = {
+                'entry.219964851': email,
+                'entry.1094753990': utmSource,
+                'entry.494035462': timestamp,
+            };
+
+            for (const [name, value] of Object.entries(fields)) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                hiddenForm.appendChild(input);
             }
+
+            document.body.appendChild(hiddenForm);
+            hiddenForm.submit();
+            document.body.removeChild(hiddenForm);
 
             // Show success
             document.getElementById('signupForm').style.display = 'none';
