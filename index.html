@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800;900&display=swap"
         rel="stylesheet">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg-primary: #0a0a0f;
@@ -50,6 +52,7 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
         }
 
         .nav-logo {
@@ -76,6 +79,90 @@
         .nav-cta:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3);
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+        }
+
+        .nav-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .nav-btn-google {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .nav-btn-google:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3);
+        }
+
+        .nav-btn-google img {
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            padding: 1px;
+        }
+
+        .nav-btn-logout {
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-btn-logout:hover {
+            background: rgba(255, 70, 70, 0.15);
+            border-color: rgba(255, 70, 70, 0.3);
+            color: #ff6b6b;
+        }
+
+        .welcome-banner {
+            display: none;
+            text-align: center;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1));
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+            font-weight: 600;
         }
 
         /* --- HERO --- */
@@ -367,6 +454,7 @@
             width: 600px;
             height: 400px;
             background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%);
+            pointer-events: none;
         }
 
         .cta-section h2 {
@@ -374,6 +462,7 @@
             font-weight: 900;
             margin-bottom: 16px;
             position: relative;
+            z-index: 1;
         }
 
         .cta-section .desc {
@@ -381,6 +470,13 @@
             max-width: 500px;
             margin: 0 auto 32px;
             font-size: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        #ctaBeforeLogin, #ctaAfterLogin {
+            position: relative;
+            z-index: 1;
         }
 
         /* --- EMAIL FORM --- */
@@ -455,6 +551,25 @@
 
         /* --- RESPONSIVE --- */
         @media (max-width: 640px) {
+            nav {
+                padding: 12px 16px;
+            }
+
+            .nav-btn-google {
+                padding: 6px 12px;
+                font-size: 0.75rem;
+                gap: 4px;
+            }
+
+            .nav-btn-google img {
+                width: 14px;
+                height: 14px;
+            }
+
+            .nav-name {
+                display: none;
+            }
+
             .hero {
                 padding: 100px 16px 60px;
             }
@@ -524,7 +639,21 @@
     <!-- NAV -->
     <nav>
         <div class="nav-logo">숏폼 복기 시트</div>
-        <a href="#cta" class="nav-cta">무료로 시작하기</a>
+        <div class="nav-right">
+            <!-- 로그인 전: Google 로그인 버튼 -->
+            <div id="authLogin">
+                <button class="nav-btn-google" onclick="loginWithGoogle()">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                    Google 로그인
+                </button>
+            </div>
+            <!-- 로그인 후: 사용자 정보 + 로그아웃 -->
+            <div id="authUser" class="nav-user" style="display:none;">
+                <img id="userAvatar" class="nav-avatar" src="" alt="프로필">
+                <span id="userName" class="nav-name"></span>
+                <button class="nav-btn-logout" onclick="logout()">로그아웃</button>
+            </div>
+        </div>
     </nav>
 
     <!-- HERO -->
@@ -630,15 +759,37 @@
 
     <!-- CTA -->
     <section class="cta-section" id="cta">
-        <h2 class="animate">다음 영상부터<br>달라지세요</h2>
-        <p class="desc animate delay-1">이메일만 입력하면 무료 체험 링크를 보내드립니다.<br>카드 등록 없이, 지금 바로 시작하세요.</p>
+        <!-- 로그인 후 환영 배너 -->
+        <div class="welcome-banner" id="welcomeBanner">
+            🎉 환영합니다, <span id="welcomeName"></span>님! 이제 숏폼 복기 시트를 사용할 준비가 되었어요.
+        </div>
 
-        <form class="email-form animate delay-2" id="signupForm" onsubmit="handleSignup(event)">
-            <input type="email" name="email" id="emailInput" placeholder="이메일 주소 입력" required>
-            <button type="submit" id="submitBtn">무료 체험 →</button>
-        </form>
-        <div class="success-msg" id="successMsg">
-            ✅ 신청 완료! 체험 링크를 이메일로 보내드리겠습니다.
+        <h2 class="animate">다음 영상부터<br>달라지세요</h2>
+
+        <!-- 로그인 전: 이메일 폼 또는 구글 로그인 -->
+        <div id="ctaBeforeLogin">
+            <p class="desc animate delay-1">이메일만 입력하면 무료 체험 링크를 보내드립니다.<br>카드 등록 없이, 지금 바로 시작하세요.</p>
+
+            <form class="email-form animate delay-2" id="signupForm" onsubmit="handleSignup(event)">
+                <input type="email" name="email" id="emailInput" placeholder="이메일 주소 입력" required>
+                <button type="submit" id="submitBtn">무료 체험 →</button>
+            </form>
+            <div class="success-msg" id="successMsg">
+                ✅ 신청 완료! 체험 링크를 이메일로 보내드리겠습니다.
+            </div>
+            <p style="color: var(--text-secondary); margin-top: 20px; font-size: 0.9rem;">또는</p>
+            <button class="btn-primary" style="margin-top: 12px; display: inline-flex; align-items: center; gap: 10px;"
+                onclick="loginWithGoogle()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"
+                    style="width:20px; height:20px; background:white; border-radius:50%; padding:2px;">
+                Google로 바로 시작하기
+            </button>
+        </div>
+
+        <!-- 로그인 후: 대시보드 안내 -->
+        <div id="ctaAfterLogin" style="display:none;">
+            <p class="desc animate delay-1">로그인 완료! 이제 복기 시트를 사용해보세요.</p>
+            <a href="#" class="btn-primary animate delay-2">대시보드 바로가기 →</a>
         </div>
     </section>
 
@@ -650,7 +801,98 @@
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
     <script>
-        // Track UTM source
+        // ============================================
+        // 🔧 Supabase 설정
+        // ============================================
+        const SUPABASE_URL = 'https://kngclypenyvjqibxkmvx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuZ2NseXBlbnl2anFpYnhrbXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MTY3MjgsImV4cCI6MjA4OTQ5MjcyOH0.1B0vLFE6zqHv9moIckMUAOKqkk194wx7aEUNqeB9qF4';
+
+        // Supabase 클라이언트 초기화
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ============================================
+        // 🔐 Google 로그인 / 로그아웃
+        // ============================================
+        async function loginWithGoogle() {
+            const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
+            if (error) {
+                console.error('로그인 에러:', error.message);
+                alert('로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            }
+        }
+
+        async function logout() {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) console.error('로그아웃 에러:', error.message);
+            updateAuthUI(null);
+        }
+
+        // ============================================
+        // 🎨 로그인 상태에 따라 UI 업데이트
+        // ============================================
+        function updateAuthUI(session) {
+            const authLogin = document.getElementById('authLogin');
+            const authUser = document.getElementById('authUser');
+            const ctaBefore = document.getElementById('ctaBeforeLogin');
+            const ctaAfter = document.getElementById('ctaAfterLogin');
+            const welcomeBanner = document.getElementById('welcomeBanner');
+
+            if (session && session.user) {
+                const user = session.user;
+                const name = user.user_metadata?.full_name || user.email?.split('@')[0] || '사용자';
+                const avatar = user.user_metadata?.avatar_url || '';
+
+                // Nav: 로그인 버튼 숨기고 사용자 정보 표시
+                authLogin.style.display = 'none';
+                authUser.style.display = 'flex';
+                document.getElementById('userName').textContent = name;
+                if (avatar) {
+                    document.getElementById('userAvatar').src = avatar;
+                } else {
+                    document.getElementById('userAvatar').style.display = 'none';
+                }
+
+                // CTA: 환영 배너 + 대시보드 안내
+                ctaBefore.style.display = 'none';
+                ctaAfter.style.display = 'block';
+                welcomeBanner.style.display = 'block';
+                document.getElementById('welcomeName').textContent = name;
+
+                console.log('[AUTH] 로그인 완료:', name);
+            } else {
+                // Nav: 로그인 버튼 표시
+                authLogin.style.display = 'block';
+                authUser.style.display = 'none';
+
+                // CTA: 이메일 폼 표시
+                ctaBefore.style.display = 'block';
+                ctaAfter.style.display = 'none';
+                welcomeBanner.style.display = 'none';
+
+                console.log('[AUTH] 로그아웃 상태');
+            }
+        }
+
+        // 로그인 상태 변경 감지
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log('[AUTH EVENT]', event);
+            updateAuthUI(session);
+        });
+
+        // 페이지 로드 시 현재 세션 확인
+        (async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            updateAuthUI(session);
+        })();
+
+        // ============================================
+        // 📧 이메일 수집 (기존 로직 유지)
+        // ============================================
         const params = new URLSearchParams(window.location.search);
         const utmSource = params.get('utm_source') || params.get('ref') || document.referrer || 'direct';
 
@@ -702,7 +944,9 @@
             console.log(`[SIGNUP] ${email} from ${utmSource}`);
         }
 
-        // Simple scroll animation
+        // ============================================
+        // ✨ 스크롤 애니메이션 (기존 유지)
+        // ============================================
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
